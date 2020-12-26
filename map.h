@@ -116,10 +116,10 @@ int map_str_comp(void const *a, void const *b, unsigned sz)
 #ifndef MM_IMPLEMENT
 typedef void map_free_fn(void *);
 #endif
-void map_val_free(void *a); //This is technically not needed
+void map_val_free(void *a) //This is technically not needed
 #ifdef MM_IMPLEMENT
 {
-    fprintf(stderr, "Warning: trying to free a value");
+    fprintf(stderr, "Warning: trying to free a value\n");
 }
 #else
 ;
@@ -431,7 +431,7 @@ void map_free(map *md)
 #endif
 
 //Returns NULL if not found, or pointer to value if found
-void *map_search(map const *md, void const *key)
+void *map_search(map const *md, void const *k)
 #ifdef MM_IMPLEMENT
 {
     //See the big comment in the __map_metadata struct. This 
