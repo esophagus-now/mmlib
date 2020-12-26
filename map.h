@@ -29,7 +29,9 @@
 #include "list.h"
 #include "fast_fail.h"
 
+#ifndef MM_IMPLEMENT
 typedef uint32_t map_hash_fn(void const *, unsigned);
+#endif
 uint32_t map_val_hash(void const *a, unsigned sz)
 #ifdef MM_IMPLEMENT
 {
@@ -78,7 +80,9 @@ uint32_t map_str_hash(void const *a, unsigned sz)
 ;
 #endif
 
+#ifndef MM_IMPLEMENT
 typedef int map_comp_fn(void const *, void const *, unsigned);
+#endif
 int map_val_comp(void const *a, void const *b, unsigned sz)
 #ifdef MM_IMPLEMENT
 {
@@ -109,7 +113,9 @@ int map_str_comp(void const *a, void const *b, unsigned sz)
 ;
 #endif
 
+#ifndef MM_IMPLEMENT
 typedef void map_free_fn(void *);
+#endif
 void map_val_free(void *a); //This is technically not needed
 #ifdef MM_IMPLEMENT
 {
