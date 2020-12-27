@@ -632,10 +632,12 @@ int construct_websock_hdr(char *dst, websock_pkt_type_t type, int fin, unsigned 
     
     
     //Push zero bytes for the mask
-    *dst++ = 0;
-    *dst++ = 0;
-    *dst++ = 0;
-    *dst++ = 0;
+    //HMMM, turns out the websocket frame does not have a mask if the MASK bit is 
+    //not set
+    //*dst++ = 0;
+    //*dst++ = 0;
+    //*dst++ = 0;
+    //*dst++ = 0;
     
     return dst - dst_saved;
 }
