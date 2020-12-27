@@ -37,9 +37,9 @@
 #include "mm_err.h"
 
 #ifdef MM_IMPLEMENT
-#warning including http_parse.h in implement mode
+//#warning including http_parse.h in implement mode
 #else
-#warning including http_parse.h in header mode
+//#warning including http_parse.h in header mode
 #endif
 
 

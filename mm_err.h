@@ -175,10 +175,10 @@ defines MM_IMPLEMENT and includes your header (my_lib.h).
 #endif
 
 #ifdef MM_IMPLEMENT
-#warning Defining MM_ERR in implement mode
+//#warning Defining MM_ERR in implement mode
 #define MM_ERR(name, val) EXTERN_FIX mm_err const name = val
 #else
-#warning Defining MM_ERR in header mode
+//#warning Defining MM_ERR in header mode
 #define MM_ERR(name, val) extern mm_err const name
 #endif
 
@@ -205,9 +205,9 @@ defines MM_IMPLEMENT and includes your header (my_lib.h).
 #undef SHOULD_INCLUDE //Don't accidentally mess up other header files
 
 #ifdef MM_IMPLEMENT
-#warning including mm_err.h in implement mode
+//#warning including mm_err.h in implement mode
 #else
-#warning including mm_err.h in header mode
+//#warning including mm_err.h in header mode
 #endif
 
 #ifndef MM_IMPLEMENT
