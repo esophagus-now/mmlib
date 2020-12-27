@@ -418,6 +418,25 @@ static void final_addresses(http_req *res, mm_err *err) {
 //Managing http_req_structs//
 /////////////////////////////
 
+void http_req_init(http_req *req, mm_err *err) 
+#ifdef MM_IMPLEMENT
+{
+    if (*err != MM_SUCCESS) return;
+
+    req->__internal.base = malloc(HTTP_REQ_INITIAL_SIZE);
+    if (!req->__internal.base) {
+        *err = HTTP_OOM;
+        return;
+    }
+    
+    req->__internal.cap = HTTP_REQ_INITIAL_SIZE;
+    
+    reset_http_req(req);
+}
+#else
+;
+#endif
+
 //Returns a newly allocated (and initialized) http_req struct. Use 
 //del_http_req to properly free it. Returns NULL and sets *err on error
 http_req *new_http_req(mm_err *err) 
@@ -431,16 +450,11 @@ http_req *new_http_req(mm_err *err)
         return NULL;
     }
     
-    ret->__internal.base = malloc(HTTP_REQ_INITIAL_SIZE);
-    if (!ret->__internal.base) {
-        *err = HTTP_OOM;
-        free(ret);
-        return NULL;
+    http_req_init(ret, err);
+    if (*err != MM_SUCCESS) {
+	free(ret);
+	return NULL;
     }
-    
-    ret->__internal.cap = HTTP_REQ_INITIAL_SIZE;
-    
-    reset_http_req(ret);
     
     return ret;
 }
@@ -463,13 +477,23 @@ void reset_http_req(http_req *h)
 ;
 #endif
 
+//Assumes h is non-NULL
+void http_req_deinit(http_req *h) 
+#ifdef MM_IMPLEMENT
+{
+    free(h->__internal.base);	
+}
+#else
+;
+#endif
+
 //Properly frees an http_req struct. Gracefully ignores NULL input.
 void del_http_req(http_req *h)
 #ifdef MM_IMPLEMENT
 {
     if (h == NULL) return;
     
-    free(h->__internal.base);
+    http_req_deinit(h);
     free(h);
 }
 #else

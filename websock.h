@@ -162,6 +162,26 @@ MM_ERR(WEBSOCK_OOM, "out of memory");
 // Managing websock_pkt structs //
 //////////////////////////////////
 
+void websock_pkt_init(websock_pkt *pkt, mm_err *err) 
+#ifdef MM_IMPLEMENT
+{
+    if (*err != MM_SUCCESS) return;
+
+    char *base = malloc(WEBSOCK_INITIAL_SIZE);
+    if (!base) {
+        *err = WEBSOCK_OOM;
+        return;
+    }
+    
+    pkt->__internal.base = base;
+    pkt->__internal.cap = WEBSOCK_INITIAL_SIZE;
+    
+    reset_websock_pkt(pkt);
+}
+#else
+;
+#endif
+
 //Returns a newly allocated (and initialized) websock_pkt struct. Use 
 //del_websock_pkt to properly free it. Returns NULL and sets *err on error
 websock_pkt *new_websock_pkt(mm_err *err) 
@@ -175,18 +195,12 @@ websock_pkt *new_websock_pkt(mm_err *err)
         return NULL;
     }
     
-    char *base = malloc(WEBSOCK_INITIAL_SIZE);
-    if (!base) {
-        *err = WEBSOCK_OOM;
-        free(ret);
-        return NULL;
+    websock_pkt_init(ret, err);
+    if (*err != MM_SUCCESS) {
+	free(ret);
+	return NULL;
     }
-    
-    ret->__internal.base = base;
-    ret->__internal.cap = WEBSOCK_INITIAL_SIZE;
-    
-    reset_websock_pkt(ret);
-    
+
     return ret;    
 }
 #else
@@ -206,12 +220,22 @@ void reset_websock_pkt(websock_pkt *pkt)
 ;
 #endif
 
+//Assumes pkt is non-NULL
+void websock_pkt_deinit(websock_pkt *pkt) 
+#ifdef MM_IMPLEMENT
+{
+    free(pkt->__internal.base);
+}
+#else
+;
+#endif
+
 //Frees all memory assicated with *pkt. Gracefull ignores NULL input.
 void del_websock_pkt(websock_pkt *pkt) 
 #ifdef MM_IMPLEMENT
 {
     if (!pkt) return;
-    free(pkt->__internal.base);
+    websock_pkt_deinit(pkt);
     free(pkt);
 }
 #else
