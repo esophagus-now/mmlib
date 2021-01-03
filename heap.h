@@ -23,11 +23,12 @@
 #endif
 
 #include <string.h>
+#include "fast_fail.h"
 
 #ifndef MM_IMPLEMENT
 #ifndef HAVE_COMPAR_TYPEDEF
 #define HAVE_COMPAR_TYPEDEF 1
-typedef int (*compar_fn)(void const *a, void const *b);
+typedef int compar_fn(void const *a, void const *b);
 #endif
 #endif
 
@@ -45,6 +46,10 @@ static void bubble_upwards(
 	void *base, void const *elem, unsigned elem_sz, 
 	unsigned root, unsigned n, compar_fn *cmp) 
 {
+	if (n == 0) {
+		FAST_FAIL("Trying to add an element to an empty heap");
+	}
+
 	//While the current node has at least two children...
 	//while (2*root + 2 < n)
 	while (root < (n-1)/2) {
@@ -102,7 +107,7 @@ static void bubble_downwards(
 		unsigned parent = (root - 1)/2;
 		
 		//If parent is less-or-equal to given element, break early
-		if (cmp(base + parent*elem_sz, elem, elem_sz) <= 0) {
+		if (cmp(base + parent*elem_sz, elem) <= 0) {
 			break;
 		}
 		
@@ -128,9 +133,10 @@ void __heap_insert(void *base, void const *elem, unsigned elem_sz, unsigned n, c
 #define heap_insert(h, e, n, cmp) \
 	__heap_insert(h, e, sizeof(*(h)), n, cmp)
 	
-#define vector_heap_insert(v, e, cmp)                    \
-do {                                                     \
+#define vector_heap_insert(v, e, cmp)                \
+do {                                                 \
 	vector_extend_if_full(v);                        \
+	v##_len++;                                       \
 	__heap_insert(v, e, sizeof(*(v)), v##_len, cmp); \
 } while(0)
 #endif
@@ -140,8 +146,13 @@ do {                                                     \
 void __heap_pop(void *base, void *elem_dest, unsigned elem_sz, unsigned n, compar_fn *cmp)
 #ifdef MM_IMPLEMENT
 {
+	if (n == 0) {
+		FAST_FAIL("Error, popping from empty heap");
+	}
 	//Copy the root element to the given destination
 	memcpy(elem_dest, base, elem_sz);
+
+	if (n == 1) return; //No bubbling to be done
 	
 	//Bubble the last element of the heap downwards
 	//TODO: there must be a more efficient way to do this...
@@ -156,7 +167,7 @@ void __heap_pop(void *base, void *elem_dest, unsigned elem_sz, unsigned n, compa
 do {                                                  \
 	__heap_pop(v, e, sizeof(*(v)), v##_len, cmp); \
 	vector_pop(v);                                \
-while(0)
+} while(0)
 #endif
 
 //TODO: heapify

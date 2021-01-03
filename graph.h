@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 //Only works with square matrices.
 void adj_mat_mul(char *dest, char const *srcA, char const *srcB, int n) 
@@ -52,6 +53,20 @@ void adj_mat_mul(char *dest, char const *srcA, char const *srcB, int n)
 ;
 #endif
 
+void print_adj_mat(char const *mat, int n) 
+#ifdef MM_IMPLEMENT
+{
+	int i, j;
+	for (i = 0; i < n; i++) {
+		for (j = 0; j < n; j++) {
+			printf("%c", mat[i*n + j] ? '1' : '0');
+		}
+		puts("");
+	}
+}
+#else 
+;
+#endif
 
 // Technique: transitive closure of an adjacency A of size n by n is equal to:
 //   A^n + A^(n-1) + ... + A
@@ -116,8 +131,6 @@ void transitive_closure(char *dest, char const *src, int n)
 		tmp = tmp2;
 		tmp2 = swap_tmp;
 		logerand >>= 1;
-		//puts("After squaring: ");
-		//print_adj_mat(tmp, n);
 	}
 	
 	adj_mat_mul(dest, src, tmp, n);
