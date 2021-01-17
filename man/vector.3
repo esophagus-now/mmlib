@@ -1,0 +1,82 @@
+.TH vector 3 "Jan 26 / 2021" "mmlib vector 0.1.0"
+.SH NAME
+vector - dynamic arrays for C programs
+.
+.
+.SH SYNOPSIS
+.nf
+.BR "#define MM_IMPLEMENT" "         /* See mmlib(7) */"
+.B #include <vector.h>
+.sp
+.BI VECTOR_DECL( type ", " name );
+.BI VECTOR_PTR_PARAM( type ", " name );
+.BI VECTOR_ARG( vec );
+.sp
+.BI vector_init( vec );
+.BI vector_free( vec );
+.sp
+.BI vector_extend_if_full( vec );
+.BI vector_reserve( vec ", " size );
+.BI vector_shrink_to_fit( vec );
+.sp
+.BI vector_push( vec ", " elem );
+.IB type " *" new_slot " = vector_lengthen(" vec );
+.sp
+.IB "type elem" " = " vec [ index ];
+.IB vec [ index "] = " elem ;
+.IB type " *" back " = vector_back_ptr(" vec );
+.sp
+.BI vector_pop( vec );
+.BI vector_clear( vec );
+.fi
+.
+.
+.SH DESCRIPTION
+Emulates the convenience of C++'s
+.B std::vector<T>
+for regular C code. Items can be added/removed from a vector, and the underlying
+memory will be
+.BR realloc (3)'ed
+if necessary. The traditional size-doubling method is used.
+.
+.SS Implementation details
+.ad l
+The
+.BI VECTOR_DECL( type ", " name )
+macro creates three variables: 
+.TP 
+.IR name ,
+of type 
+.RI pointer-to- type ". Elements of the array can thus be accesed through"
+.I name
+as if it were the (pointer to the beginning of an) ordinary C array. No 
+bounds-checking is performed.
+.
+.TP
+.IR name_len ,
+of type 
+.IR unsigned ". This"
+variable holds the current number of elements inside the vector. 
+.
+.TP
+.IR name_cap ,
+of type 
+.IR unsigned ". This"
+variable holds the total capacity of the vector's underlying memory (measured as
+the number of items of type 
+.I type
+it could hold).
+.
+.PP
+The 
+.BI VECTOR_PTR_PARAM( type ", " name )
+macro expands to three parameters: 
+.IR "type **name" ", " "unsigned *name_len" ", and " "unsigned *name_cap" .
+Likewise, the
+.B VECTOR_ARG
+macro expands out to three arguments: pointers to the original three variables
+created by
+.BR VECTOR_DECL .
+.
+.SH AUTHOR
+Marco Merlini (mahkoe@gmail.com)
