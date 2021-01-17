@@ -1,6 +1,9 @@
-.TH vector 3 "Jan 26 / 2021" "mmlib vector 0.1.0"
+.hw VECTOR_DECL
+.TH vector 3 "Jan 27 / 2021" "mmlib vector 0.1.0" "mmlib Manual Pages"
 .SH NAME
 vector - dynamic arrays for C programs
+.
+.
 .
 .
 .SH SYNOPSIS
@@ -9,11 +12,12 @@ vector - dynamic arrays for C programs
 .B #include <vector.h>
 .sp
 .BI VECTOR_DECL( type ", " name );
-.BI VECTOR_PTR_PARAM( type ", " name );
-.BI VECTOR_ARG( vec );
 .sp
 .BI vector_init( vec );
 .BI vector_free( vec );
+.sp
+.BI VECTOR_PTR_PARAM( type ", " name );
+.BI VECTOR_ARG( vec );
 .sp
 .BI vector_extend_if_full( vec );
 .BI vector_reserve( vec ", " size );
@@ -22,13 +26,19 @@ vector - dynamic arrays for C programs
 .BI vector_push( vec ", " elem );
 .IB type " *" new_slot " = vector_lengthen(" vec );
 .sp
-.IB "type elem" " = " vec [ index ];
-.IB vec [ index "] = " elem ;
+.IB vec [ index ]
+.BI (* vec " + " index )
+.IB somestruct -> vec [ index ]
 .IB type " *" back " = vector_back_ptr(" vec );
+.sp
+.I  vec_len
+.IB somestruct -> vec_len
 .sp
 .BI vector_pop( vec );
 .BI vector_clear( vec );
 .fi
+.
+.
 .
 .
 .SH DESCRIPTION
@@ -39,8 +49,175 @@ memory will be
 .BR realloc (3)'ed
 if necessary. The traditional size-doubling method is used.
 .
-.SS Implementation details
-.ad l
+.
+.SS Declaring a vector
+.BI VECTOR_DECL( type ", " name )
+declares, but does not initialize, a dynamic array
+.I name
+of type
+.IR type .
+This macro can be used in a function or in a 
+.B struct 
+definition. The "vector" itself is a pointer to memory allocated by 
+.BR malloc (3)
+alongside some bookkeeping (see 
+.BR NOTES )
+and thus only occupies about 16 bytes.
+.
+.
+.SS Initializing and freeing vectors
+The 
+.BI vector_init( vec )
+macro initializes the vector named
+.IR vec .
+.I vec
+is any l-value previously declared with 
+.BR VECTOR_DECL . 
+Calling 
+.B vector_init
+a second time on 
+.I vec
+will leak the memory it originally pointed to. 
+.sp
+.
+The 
+.BI vector_free( vec )
+macro will 
+.BR free (3)
+the memory held by
+.IR vec . vec
+is any l-value previously declared with 
+.BR VECTOR_DECL ". If"
+.I vec
+is a vector of pointers to allocated memory, 
+.B vector_free
+will NOT free the memory that its elements point to.
+.
+.
+.SS Passing vectors to functions
+The 
+.BI VECTOR_PTR_PARAM( type ", " name )
+macro can be used in a function parameter list to declare a vector passed in by
+reference. Its arguments are the same as for
+.BR VECTOR_DECL .
+Within the function, use
+.BI (* name )
+to dereference the vector; this expression will work with any of the functions 
+or expressions shown in the 
+.BR SYNOPSIS . 
+.sp
+.
+Use 
+.BI VECTOR_ARG( vec )
+to pass the vector named 
+.I vec
+to a function needing a 
+.BR VECTOR_PTR_PARAM . 
+See the 
+.B EXAMPLES
+section for more information.
+.
+.
+.SS Changing vector capacity
+.BI vector_extend_if_full( vec )
+checks if 
+.IR vec 's
+length is equal to its capacity. If so, the capacity is doubled.
+.sp
+.
+.BI vector_reserve( vec ", " size )
+guarantees 
+.IR vec 's
+capacity is large enough to hold
+.I size
+elements. The vector may be grown, but will not be shrunk.
+.sp
+.
+.BI vector_shrink_to_fit( vec )
+will reallocate
+.I vec
+such that its capacity is exactly equal to its length.
+.
+.
+.SS Adding elements to vectors
+.BI vector_push( vec ", " elem )
+increases
+.IR vec 's
+length by 1 (reallocating if necessary) and appends a copy of elem to the end.
+.sp
+.
+.BI vector_lengthen( vec )
+increases 
+.IR vec 's
+length by 1 (reallocating if necessary) and returns a pointer to the new slot,
+which is at the end of the vector. The memory will not be initialized.
+.
+.
+.SS Accessing vector elements
+A vector can be accessed as if it was a regular C array by using square 
+brackets (
+.IB vec [ index ]
+) or by treating it as a pointer (
+.IB vec " + " index
+). This also works if 
+.I vec
+is in a 
+.BR struct,
+as in
+.IB somestruct -> vec [ index 
+.BR ] .
+.sp
+.
+.BI vector_back_ptr( vec )
+returns a pointer to the last element of
+.IR vec .
+If 
+.I vec
+is empty, the behaviour is undefined.
+.
+.
+.SS Finding the length of a vector
+Anywhere a vector
+.I vec
+is declared, a variable with with the name
+.I vec_len
+is also declared. The functions in this library will maintain
+.I vec_len
+at all times such that it holds the number of items in 
+.I vec
+(i.e. NOT the number of bytes). Please see the 
+.B NOTES
+section for more details.
+.
+.
+.SS Removing elements from a vector
+.BI vector_pop( vec )
+will decrease 
+.IR vec 's
+length by 1. The capacity is not changed, and the element that was "removed" is
+neither freed nor cleared.
+.sp
+.
+.BI vector_clear( vec )
+will set
+.IR vec 's
+length to 0. The capacity is not changed, and the element that was "removed" is
+neither freed nor cleared.
+.
+.
+.
+.
+.SH NOTES
+If a vector allocation/reallocation fails,
+.B SIGABRT
+will be raised.
+.sp
+.
+Unlike plain C arrays, 
+.BI sizeof( vec )
+will always return the size of a 
+.B void*
+on your machine. Use
 The
 .BI VECTOR_DECL( type ", " name )
 macro creates three variables: 
@@ -49,7 +226,7 @@ macro creates three variables:
 of type 
 .RI pointer-to- type ". Elements of the array can thus be accesed through"
 .I name
-as if it were the (pointer to the beginning of an) ordinary C array. No 
+as if it were the pointer to the beginning of an ordinary C array. No 
 bounds-checking is performed.
 .
 .TP
@@ -77,6 +254,99 @@ Likewise, the
 macro expands out to three arguments: pointers to the original three variables
 created by
 .BR VECTOR_DECL .
+.
+.
+.
+.
+.SH EXAMPLES
+The following example demonstrates ways to use the vector library. The program
+accepts a list of strings from 
+.B STDIN
+until an
+.BR EOF " (" CTRL-D )
+is encountered. The strings are sorted, printed, and a tally of bytes is 
+displayed.
+.
+.
+.SS Read a list of strings, sort, and print
+.EX
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MM_IMPLEMENT
+#include <vector.h>
+
+//For sorting a vector of strings
+int deref_strcmp(void const *a, void const *b) {
+	char * const *lhs = (char * const *) a;
+	char * const *rhs = (char * const *) b;
+	
+	return strcmp(*lhs, *rhs);
+}
+
+//Counts the bytes in a vector of strings (including NULs).
+int count_bytes(VECTOR_PTR_PARAM(char *, strs)) {
+	int count = 0;
+	
+	int i;
+	for (i = 0; i < *strs_len; i++) {
+		count += strlen((*strs)[i]) + 1; //+1 for NUL
+	}
+	
+	return count;
+}
+
+//Prints all the strings in a vector, then the total number
+//of bytes.
+void print_strvec(VECTOR_PTR_PARAM(char *, strs)) {
+	int i;
+	for (i = 0; i < *strs_len; i++) {
+		printf("%s", (*strs)[i]);
+	}
+	
+	//Notice that we pass *strs to VECTOR_ARG instead of strs.
+	int num_bytes = count_bytes(VECTOR_ARG(*strs));
+	printf("\\nTotal bytes: %d\\n", num_bytes);
+}
+
+int main(int argc, char **argv) {
+	//Declare and initialize a vector of strings
+	VECTOR_DECL(char *, strs);
+	vector_init(strs);
+	
+	//Read lines from stdin until EOF
+	while(1) {
+		char *line = malloc(128);
+		char *ret = fgets(line, 128, stdin);
+		if (ret == NULL) break;
+		
+		vector_push(strs, line);
+		
+		//Could have also used:
+		//
+		//char **back = vector_lengthen(strs);
+		//*back = line;
+	}
+	
+	//Sort the char*s in the vector
+	qsort(strs, strs_len, sizeof(char*), deref_strcmp);
+	
+	//Print the sorted vector
+	puts("\\nSorted:");
+	puts("-------");
+	print_strvec(VECTOR_ARG(strs));
+	
+	//Release the memory
+	int i;
+	for (i = 0; i < strs_len; i++) free(strs[i]);
+	vector_free(strs);
+	
+	return 0;
+}
+.EE
+.
+.
 .
 .SH AUTHOR
 Marco Merlini (mahkoe@gmail.com)
