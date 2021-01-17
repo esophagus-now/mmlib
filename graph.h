@@ -15,6 +15,7 @@
 #endif
 
 #if SHOULD_INCLUDE
+#undef SHOULD_INCLUDE
 
 #ifdef MM_IMPLEMENT
 #undef MM_IMPLEMENT
@@ -25,6 +26,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "heap.h"
+#include "map.h"
+#include "tatham_coroutine.h"
 
 //Only works with square matrices.
 void adj_mat_mul(char *dest, char const *srcA, char const *srcB, int n) 
@@ -142,5 +146,41 @@ void transitive_closure(char *dest, char const *src, int n)
 ;
 #endif
 
+//Graph functions (BFS, DFS, Dijkstra, A*, topo sort) all need 
+//a generic way to get the neighbours of a node. I see several
+//different ways this could be done:
+//
+// - Caller supplies function that fills a vector of void pointers
+// - Caller supplies function that fills a byte array of fixed-size records
+// - Caller supplies a coroutine that yields void pointers
+// 
+// The coroutine is by far my favourite approach, but it really
+// makes it harder for others to use the library...
+// You know what? The whole reason I'm making these libraries is 
+// because I enjoy finding elegant solutions, and because I want 
+// libraries that I can use and understand. I don't think using
+// coroutines is difficult, and I wouldn't even be worried about 
+// the graph library being harder to use if the C language 
+// had coroutines built-in and everyone was used to them. They're 
+// my libraries, so I decide! 
+#ifndef MM_IMPLEMENT
+//Return pointer to next neighbour of cur_elem. This is a re-entrant
+//coroutine (see tatham_coroutine.h) to let you yield mutiple 
+//neighbours for the same element. 
+typedef void *neighbour_fn(ccrContext *ccrParam, void const *cur_elem);
+
+//Return nonzero if you want graph search to stop. arg is whatever was 
+//given to the graph search function.
+typedef int visit_fn(void *elem, void *arg);
+#endif
+
+//dijkstra: takes
+//     - Initial element 
+//     - neighbour_fn
+//     - visit_fn
+//     - Function to free nodes when finished with them, or NULL to do nothing
+//and returns a list of void pointers and a length. The user can free the 
+//void pointers in the list if necessary, and should always free the list
+//itself.
 
 #endif
