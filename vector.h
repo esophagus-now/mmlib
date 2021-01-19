@@ -15,7 +15,7 @@
 #endif
 
 
-#ifdef SHOULD_INCLUDE
+#if SHOULD_INCLUDE
 #undef SHOULD_INCLUDE
 
 
