@@ -15,6 +15,7 @@
 #endif
 
 #if SHOULD_INCLUDE
+#undef SHOULD_INCLUDE
 
 #ifdef MM_IMPLEMENT
 #undef MM_IMPLEMENT
