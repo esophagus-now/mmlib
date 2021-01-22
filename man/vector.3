@@ -217,7 +217,9 @@ Unlike plain C arrays,
 .BI sizeof( vec )
 will always return the size of a 
 .B void*
-on your machine. Use
+on your machine. 
+.sp
+.
 The
 .BI VECTOR_DECL( type ", " name )
 macro creates three variables: 
@@ -319,7 +321,10 @@ int main(int argc, char **argv) {
 	while(1) {
 		char *line = malloc(128);
 		char *ret = fgets(line, 128, stdin);
-		if (ret == NULL) break;
+		if (ret == NULL) {
+			free(line);
+			break;
+		}
 		
 		vector_push(strs, line);
 		
@@ -348,5 +353,7 @@ int main(int argc, char **argv) {
 .
 .
 .
+.SH SEE ALSO
+.BR mmlib (7)
 .SH AUTHOR
 Marco Merlini (mahkoe@gmail.com)

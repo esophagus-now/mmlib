@@ -1,0 +1,93 @@
+.TH mmlib 7 "Jan 27 / 2021" "mmlib 0.1.0" "mmlib Manual Pages"
+.SH NAME
+mmlib - Marco's accumulated C libraries
+.
+.
+.
+.
+.SH SYNOPSIS
+.nf
+.BR "#define MM_IMPLEMENT" "         /* See NOTES */"
+.sp
+.B #include <stringify.h>
+.B #include <fast_fail.h>
+.B #include <mm_err.h>
+.B #include <list.h>
+.B #include <vector.h>
+.B #include <heap.h>
+.B #include <map.h>
+.B #include <graph.h>
+.B #include <tatham_coroutine.h>
+.B #include <http_parse.h>
+.B #include <websock.h>
+.fi
+.
+.
+.
+.
+.SH DESCRIPTION
+This project started when I discovered Sean Barrett's "stb" libraries. Of 
+course, I don't think I'm somehow better than Sean Barrett; I just 
+wanted to write libraries for the fun of it. 
+.sp
+.
+The following table summarizes what each header provides:
+.
+.
+.SS Rationale
+These "mmlib" libraries were originally created to provide vector and map 
+types, but I had other C code laying around and decided to clean it up and
+include it here too.
+.sp
+.
+This particular set of libraries wants to be:
+.
+.TP 
+.B Hassle-free:
+Compiling code that uses mmlib should be just as easy as using the C standard
+library. I adopt the single-file library approach learned from Sean Barrett.
+.sp
+.
+Another aspect of being hassle-free is providing a good API. A user shouldn't
+have to create "incidental objects" and call three functions where a just a
+simple single function call would suffice
+.RB ( cough " Windows API " cough ).
+.TP
+.B Elegant:
+Any implementation of a function in this library should use a straightforward 
+method. The litmus test is whether the method could be understood by a beginner 
+programmer in under 10 minutes. I am always willing to give up performance for 
+a simpler implementation; it just so happens that simpler is usually just as 
+performant. There is always an ongoing effort to simplify the code (and I am 
+nowhere near finished!)
+.TP
+.B Dependency-free:
+mmlib headers should depend only on the standard library or other mmlib headers.
+As of January 27th 2021, the only external dependency is on the SHA1 function 
+from OpenSSL; I want to get rid of this as soon as possible.
+.TP
+.B Documented with man pages:
+I love man pages. Need I say more?
+.TP 
+.B Free of global state:
+This whole library has only one global variable: MM_SUCCESS (see
+.BR mm_err (3)). 
+Its existence gives me conniptions, but I haven't found a good way around it yet.
+.
+.
+.
+.
+.SH NOTES
+.
+.
+.
+.
+.SH EXAMPLES
+.
+.
+.
+.
+.SH SEE ALSO
+.BR vector (3)
+.SH AUTHOR
+Marco Merlini (mahkoe@gmail.com)
