@@ -1,0 +1,87 @@
+.hw VECTOR_DECL
+.TH mm_coroutine 3 "May 16 / 2021" "mmlib mm_coroutine 0.1.0" "mmlib Manual Pages"
+.SH NAME
+mm_coroutine - Coroutines for C programs
+.
+.
+.
+.
+.SH SYNOPSIS
+.nf
+.BR "#define MM_IMPLEMENT" "         /* See mmlib(7) */"
+.B #include <mm_coroutine.h>
+.sp
+.BI "crt_ctx *crt_new(crt_fn *" fn ", void *" arg );
+.BI "void     crt_del(crt_ctx *" ctx );
+.sp
+.BI "crt_status crt_run(crt_ctx *" ctx );
+.sp
+.BI "void crt_early_exit(crt_ctx *" ctx );
+.BI "void crt_error(crt_ctx *" ctx );
+.fi
+.
+.
+.
+.
+.SH DESCRIPTION
+.
+.
+.
+.
+.
+.
+.SH NOTES
+If a memory allocation fails,
+.B SIGABRT
+will be raised.
+.sp
+.
+.
+.
+.
+.
+.SH EXAMPLES
+.
+.EX
+#include <stdio.h>
+
+#define MM_IMPLEMENT
+#include <mm_coroutine.h>
+
+__attribute__((noinline))
+void silly_yeild(crt_ctx *ctx, int i) {
+    printf("Returning %d!\n", i);
+    crt_early_exit(ctx);
+}
+
+//Generates the sequence 1..10
+void genseq(crt_ctx *ctx, void *arg) {
+    int *ret = (int *)arg;
+    int i;
+    for (i = 1; i <= 10; i++) {
+        *ret = i;
+        silly_yeild(ctx, i);
+    }
+}
+
+int main(void) {
+    printf("Hello World\n");
+    int val;
+    crt_ctx *ctx = crt_new(genseq, &val);
+
+    while(crt_run(ctx) == CRT_IN_PROGRESS) {
+        printf("genseq returned %d\n", val);
+    }
+    
+    crt_del(ctx);
+    
+    return 0;
+}
+.EE
+.
+.
+.
+.SH SEE ALSO
+.BR mmlib (7)
+.SH AUTHOR
+Marco Merlini (mahkoe@gmail.com)
