@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include "heap.h"
 #include "map.h"
-#include "tatham_coroutine.h"
+#include "mm_coroutine.h"
 
 //Only works with square matrices.
 void adj_mat_mul(char *dest, char const *srcA, char const *srcB, int n) 
@@ -164,10 +164,9 @@ void transitive_closure(char *dest, char const *src, int n)
 // had coroutines built-in and everyone was used to them. They're 
 // my libraries, so I decide! 
 #ifndef MM_IMPLEMENT
-//Return pointer to next neighbour of cur_elem. This is a re-entrant
-//coroutine (see tatham_coroutine.h) to let you yield mutiple 
-//neighbours for the same element. 
-typedef void *neighbour_fn(ccrContext *ccrParam, void const *cur_elem);
+//This will be given a void ** as arg. Should save a pointer to the next
+//node in *arg every time it is called
+typedef crt_fn neighbour_fn;
 
 //Return nonzero if you want graph search to stop. arg is whatever was 
 //given to the graph search function.

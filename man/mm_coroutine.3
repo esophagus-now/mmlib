@@ -1,5 +1,5 @@
 .hw VECTOR_DECL
-.TH mm_coroutine 3 "May 16 / 2021" "mmlib mm_coroutine 0.1.0" "mmlib Manual Pages"
+.TH mm_coroutine 3 "May 17 / 2021" "mmlib mm_coroutine 0.1.0" "mmlib Manual Pages"
 .SH NAME
 mm_coroutine - Coroutines for C programs
 .
@@ -11,13 +11,28 @@ mm_coroutine - Coroutines for C programs
 .BR "#define MM_IMPLEMENT" "         /* See mmlib(7) */"
 .B #include <mm_coroutine.h>
 .sp
-.BI "crt_ctx *crt_new(crt_fn *" fn ", void *" arg );
-.BI "void     crt_del(crt_ctx *" ctx );
+.B typedef void crt_fn(void*);
 .sp
-.BI "crt_status crt_run(crt_ctx *" ctx );
+.B typedef enum {
+.B "  CRT_DONE,"
+.B "  CRT_IN_PROGRESS,"
+.B "  CRT_ERROR,"
+.B "  CRT_INVALID"
+.B } crt_status;
 .sp
-.BI "void crt_early_exit(crt_ctx *" ctx );
-.BI "void crt_error(crt_ctx *" ctx );
+.BI "crt_ctx *crt_new       (crt_fn *" fn ", void *" arg );
+.BI "crt_fn * crt_reset_fn  (crt_ctx *" ctx ", crt_fn *" fn );
+.BI "void *   crt_reset_arg (crt_ctx *" ctx ", void *" arg );
+.BI "void     crt_del       (crt_ctx *" ctx );
+.sp
+.BI "crt_status crt_run         (crt_ctx *" ctx );
+.BI "void       crt_clear_error (crt_ctx *" ctx );
+.BI "void       crt_stop        (crt_ctx *" ctx );
+.BI "crt_status crt_get_status  (crt_ctx *" ctx );
+.sp
+.BI "void crt_early_exit (crt_ctx *" ctx );
+.BI "void crt_error      (crt_ctx *" ctx );
+.BI "void crt_exit       (crt_ctx *" ctx );
 .fi
 .
 .
@@ -25,17 +40,204 @@ mm_coroutine - Coroutines for C programs
 .
 .SH DESCRIPTION
 .
+Provides crude (but functional!) coroutine support for C programs, tested on 
+Linux and with MinGW. It is unknown whether this works in all C++ runtimes. 
+.sp 
+Creating a coroutine will allocate 40KB of space using 
+.BR malloc (3)
+for the coroutine's stack. Overflowing this space causes undefined behaviour.
 .
+.SS Creating and freeing coroutines
+Calling 
+.B crt_new
+returns a newly allocated coroutine context struct that contains, among 
+other things, an area for the coroutine's stack and any registers that are
+saved during a context switch. Creating the coroutine context does NOT run
+the function (use 
+.B crt_run 
+for this). When the coroutine is eventually started, the function
+.I fn
+will be called with the argument
+.IR arg .
+The 
+.B crt_ctx
+struct is an opaque type.
+.sp
+The 
+.B crt_free
+function frees the given coroutine context, and gracefully ignores
+.B NULL
+input. It is safe to free a coroutine that is in mid-execution, but note 
+that all information on that coroutine's stack will be lost.
 .
+.sp
 .
+At any time, the function and/or argument for a given coroutine context can
+be changed using
+.B crt_reset_fn
+and
+.BR crt_reset_arg ,
+respectively. 
+These changes 
+.B will not take effect 
+until the coroutine is started from the beginning! 
+.
+.SS Starting/resuming coroutines
+The 
+.B crt_run
+function executes the 
+.I fn
+function that was given to 
+.BR crt_new .
+If the function has not yet been started, or if the function has finished
+and the coroutine is being run again,
+.I fn
+will be called with the void pointer that was given to 
+.B crt_run
+as its second argument (the first argument to the function is always the
+.B crt_ctx
+struct that was given to 
+.BR crt_run ). 
+On the other hand, if the function is in mid-execution,
+.B crt_run
+simply resumes it from where it left off. The
+.B crt_new
+function returns one of the values from the
+.B crt_status
+enum; 
+.B CRT_DONE
+indicates that the functioned returned succesfully,
+.B CRT_IN_PROGRESS
+indicates that the function is in mid-execution, and
+.B CRT_ERROR
+indicates that the function signaled an error. The
+.B CRT_INVALID 
+status instead means that the arguments given to 
+.B crt_run
+don't make sense or that the 
+.B crt_ctx
+struct is invalid.
+.
+.sp
+.
+Once a coroutine signals an error, it cannot be re-executed until
+.B crt_clear_error
+is called on the coroutine's context. This function has no effect unless the
+coroutine was actually in an error state.
+.
+.sp
+.
+A coroutine can be forcibly stopped by calling
+.B crt_stop
+with a pointer to the coroutine's context struct. This will discard any 
+information the coroutine was storing on its stack, and the next time 
+.B crt_run
+is called on this context, the function will restart from the beginning.
+.
+.sp
+.
+For convenience, calling
+.B crt_get_status
+returns the status of the given coroutine context.
+.
+.SS Returning from a coroutine
+Any function that conforms to the 
+.B crt_fn
+type can be called as a coroutine. If such a function is called using
+.B crt_run
+then it has four options for returning:
+.IP - 2
+If the function
+.I fn
+given to 
+.B crt_new
+returns normally, the call to 
+.B crt_run
+will return
+.BR CRT_DONE .
+Further calls to 
+.B crt_run
+will start 
+.I fn
+from the beginning.
+.
+.IP - 2
+If the function
+.I fn
+or any of its descendants calls
+.BR crt_exit ,
+the coroutine's stack is discarded and the call to
+.B crt_run
+will return
+.BR CRT_DONE .
+Further calls to 
+.B crt_run
+will start 
+.I fn
+from the beginning.
+.
+.IP - 2
+If the function
+.I fn
+or any of its descendants calls
+.BR crt_early_exit ,
+the call to
+.B crt_run
+will return
+.BR CRT_IN_PROGRESS .
+Further calls to 
+.B crt_run
+will continue 
+.I fn
+(or the descendant of
+.IR fn ,
+whatever the case may be) from just after the place where it called
+.BR crt_early_exit .
+.
+.IP - 2
+If the function
+.I fn
+or any of its descendants calls
+.BR crt_error ,
+the call to
+.B crt_run
+will return
+.BR CRT_ERROR .
+Further calls to 
+.B crt_run
+will simply cause
+.B crt_run 
+to immediately return with status
+.BR CRT_ERROR .
+To restart
+.I fn
+from the beginning, you must call
+.B crt_clear_error
+on its
+.B crt_ctx
+struct.
 .
 .
 .SH NOTES
+Please 
+.B do not
+compile code using this library with the
+.B -fomit-frame-pointer
+switch.
+.sp
 If a memory allocation fails,
 .B SIGABRT
 will be raised.
 .sp
-.
+Instead of allocating a fixed-size stack, this library should use
+automatically-growing memory allocations in a future release. This should be
+possible using 
+.BR mmap (3)
+with the
+.B MAP_GROWSDOWN
+flag in Linux, and using
+.B VirtualAlloc
+with guard pages in Windows.
 .
 .
 .
@@ -50,7 +252,7 @@ will be raised.
 
 __attribute__((noinline))
 void silly_yeild(crt_ctx *ctx, int i) {
-    printf("Returning %d!\n", i);
+    printf("Returning %d!\\n", i);
     crt_early_exit(ctx);
 }
 
@@ -70,7 +272,7 @@ int main(void) {
     crt_ctx *ctx = crt_new(genseq, &val);
 
     while(crt_run(ctx) == CRT_IN_PROGRESS) {
-        printf("genseq returned %d\n", val);
+        printf("genseq returned %d\\n", val);
     }
     
     crt_del(ctx);

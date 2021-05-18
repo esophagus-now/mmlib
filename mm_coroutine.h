@@ -100,10 +100,53 @@ crt_ctx *crt_new(crt_fn *fn, void *arg)
     if (!ret) FAST_FAIL("out of memory");
     
     ret->state = CRT_STATE_CREATED;
+    ret->ret = CRT_DONE;
     ret->fn = fn;
     ret->arg = arg;
 }
 #endif
+
+crt_fn *crt_reset_fn(crt_ctx *ctx, crt_fn *fn)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    void *old = ctx->fn;
+    ctx->fn = fn;
+    return old;
+}
+
+void *crt_reset_arg(crt_ctx *ctx, void *arg)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    void *old = ctx->arg;
+    ctx->arg = arg;
+    return old;
+}
+
+//The downside of opaque types is that you need these annoying getter 
+//functions. Maybe I'll rethink that decision...
+crt_status crt_get_status(crt_ctx *ctx)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    return ctx->ret;
+}
+#endif
+
+void crt_clear_error(crt_ctx *ctx)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    if (ctx->state == CRT_STATE_ERROR) {
+        ctx->state = CRT_STATE_CREATED;
+        ctx->ret = CRT_DONE;
+    }
+}
 
 //Gracefully ignores NULL inputs
 void crt_del(crt_ctx *ctx) 
@@ -151,6 +194,16 @@ void crt_error(crt_ctx *ctx)
 }
 #endif
 
+void crt_exit(crt_ctx *ctx)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    ctx->state = CRT_STATE_DONE;
+    ctx->ret = CRT_DONE;
+    longjmp(ctx->exit_buf, 1);
+}
+
 crt_status crt_run(crt_ctx *ctx) 
 #ifndef MM_IMPLEMENT
 ;
@@ -162,7 +215,7 @@ crt_status crt_run(crt_ctx *ctx)
 
   if (ctx->state == CRT_STATE_READY) {
     longjmp(ctx->resume_buf, 1);
-  } else if (ctx->state == CRT_STATE_CREATED) {
+  } else if (ctx->state == CRT_STATE_CREATED || ctx->state == CRT_STATE_DONE) {
     //The only place we need to do anything dirty... forcibly
     //set the stack pointer to the new stack
     //https://brennan.io/2020/05/24/userspace-cooperative-multitasking/
@@ -201,6 +254,16 @@ crt_status crt_run(crt_ctx *ctx)
     fprintf(stderr, "Error: tried to run something invalid\n");
     return CRT_INVALID;
   }
+}
+#endif
+
+void crt_stop(crt_ctx *ctx)
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    ctx->state = CRT_STATE_CREATED;
+    ctx->ret = CRT_DONE;
 }
 #endif
 
