@@ -26,7 +26,7 @@
 #define MM_IMPLEMENT 1
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__CYGWIN__)
 
 /////////////////////////////
 // Definitions for Windows //
@@ -68,8 +68,59 @@
     typedef SOCKET sockfd;
     #endif
     
+    //Good lord this is complicated... from:
+    //https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsastartup
+    int os_common_startup() 
+    #ifndef MM_IMPLEMENT
+    ;
+    #else 
+    {
+        WORD wVersionRequested;
+        WSADATA wsaData;
+        int err;
+
+        /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+        wVersionRequested = MAKEWORD(2, 2);
+
+        err = WSAStartup(wVersionRequested, &wsaData);
+        if (err != 0) {
+            /* Tell the user that we could not find a usable */
+            /* Winsock DLL.                                  */
+            printf("WSAStartup failed with error: %d\n", err);
+            return 1;
+        }
+
+        /* Confirm that the WinSock DLL supports 2.2.*/
+        /* Note that if the DLL supports versions greater    */
+        /* than 2.2 in addition to 2.2, it will still return */
+        /* 2.2 in wVersion since that is the version we      */
+        /* requested.                                        */
+
+        if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
+            /* Tell the user that we could not find a usable */
+            /* WinSock DLL.                                  */
+            printf("Could not find a usable version of Winsock.dll\n");
+            WSACleanup();
+            return 1;
+        }
+        
+        return 0;
+    }
+    #endif
+    
+    
+    void os_common_cleanup() 
+    #ifndef MM_IMPLEMENT
+    ;
+    #else 
+    {
+        WSACleanup();
+    }
+    #endif
+    
     //The things windows and MinGW make me do...
     //https://virtuallyfun.com/wordpress/2017/02/11/wsapoll-mingw/
+    #if 0
     #if defined(__MINGW32__) || defined(__MINGW64__) || defined(__CYGWIN__)
         typedef struct pollfd {
             SOCKET fd;
@@ -92,13 +143,14 @@
         #define POLLHUP     0x0002
         #define POLLNVAL    0x0004
     #endif
+    #endif
     
     #define poll(x,y,z) WSAPoll(x,y,z)
     //Windows really makes things complicated...
     #define fix_rc(x) (((x) == SOCKET_ERROR) ? WSAGetLastError() : 0)
     #define sockerrno WSAGetLastError()
     
-    static char* sockstrerror(int x) 
+    char* sockstrerror(int x) 
     #ifndef MM_IMPLEMENT
     ;
     #else
@@ -151,7 +203,7 @@
     #endif
     
 #else
-
+    #error gwrgtw4er
     ///////////////////////////
     // Definitions for Linux //
     ///////////////////////////
@@ -161,6 +213,7 @@
 	#include <arpa/inet.h>
 	#include <sys/time.h>
     #include <poll.h>
+    #include <errno.h>
     
     #ifndef MM_IMPLEMENT
     
@@ -171,6 +224,25 @@
     #define fix_rc(x) (x)
     #define sockerrno errno
     #define sockstrerror(x) strerror(x)
+    
+    int os_common_startup() 
+    #ifndef MM_IMPLEMENT
+    ;
+    #else 
+    {
+        return 0;
+    }
+    #endif
+    
+    
+    void os_common_cleanup() 
+    #ifndef MM_IMPLEMENT
+    ;
+    #else 
+    {
+        return;
+    }
+    #endif
     
     #endif
 #endif
@@ -187,7 +259,7 @@
 //	 0 means success and anything else is an error number that can be passed
 //	 into sockstrerror()
 // - Use sockerrno instead of errno
-// - Use sockstrerr(x) instead of strerror(x)
+// - Use sockstrerror(x) instead of strerror(x)
 */
 
 #endif
