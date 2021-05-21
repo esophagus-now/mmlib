@@ -1,3 +1,13 @@
+//THINGS THAT ARE BROKEN:
+//
+// - This doesn't compile in cygwin. The winsock header defines its own 
+//   select function, which clashes with cygwin's select function (in 
+//   cygwin, stdio.h includes sys/select.h)
+// - On MinGW, I used to have to manually define a few constants, but even
+//   though I'm pretty sure I haven't updated my MinGW, I actually don't
+//   need them anymore (they're in an #if 0 block for the moment). What is
+//   going on here?
+
 //This header file tries to only make "cosmetic" changes to OS APIs. The end
 //goal is a set of portable functions
 
@@ -123,6 +133,8 @@
     
     //The things windows and MinGW make me do...
     //https://virtuallyfun.com/wordpress/2017/02/11/wsapoll-mingw/
+    //Actually this fix appears to no longer be needed (last time I tried it
+    //was in 2020). 
     #if 0
     #if defined(__MINGW32__) || defined(__MINGW64__) || defined(__CYGWIN__)
         typedef struct pollfd {
@@ -206,7 +218,6 @@
     #endif
     
 #else
-    #error gwrgtw4er
     ///////////////////////////
     // Definitions for Linux //
     ///////////////////////////
