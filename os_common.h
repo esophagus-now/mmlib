@@ -68,6 +68,9 @@
     typedef SOCKET sockfd;
     #endif
     
+    #define write(x,y,z) send(x,y,z,0)
+    #define read(x,y,z) recv(x,y,z,0)
+    
     //Good lord this is complicated... from:
     //https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsastartup
     int os_common_startup() 
