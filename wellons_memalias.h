@@ -3,7 +3,7 @@ I did not write this code! It is taken from this excellent article by Chris
 Wellons: https://nullprogram.com/blog/2016/04/10/
 
 I did however convert it to the "single-header" method used by all the other 
-files in this library.
+files in this library. I also added a Windows implementation of getpagesize
 
 Tested using:
  - MinGW, 32-bit
@@ -73,6 +73,21 @@ When called correctly it cannot fail, so there’s no return value.
 ////////////////////////////
 
 #include <windows.h>
+
+//https://superuser.com/a/747958/317094
+int getpagesize() 
+#ifndef MM_IMPLEMENT
+;
+#else
+{
+    //For once the Windows API is kind of nice here. The only reason to make
+    //this wrapper is to have something portable
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    
+    return si.dwAllocationGranularity;
+}
+#endif
 
 int memory_alias_map(size_t size, size_t naddr, void **addrs)
 #ifndef MM_IMPLEMENT
