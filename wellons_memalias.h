@@ -3,7 +3,11 @@ I did not write this code! It is taken from this excellent article by Chris
 Wellons: https://nullprogram.com/blog/2016/04/10/
 
 I did however convert it to the "single-header" method used by all the other 
-files in this library. I also added a Windows implementation of getpagesize
+files in this library. I also added a Windows implementation of getpagesize,
+and I modified the Linux version to use the MAP_FIXED flag if the given 
+address is non-NULL. It is now up to the user to first do an anonymous 
+mapping that gets replaced by the given addresses (or they can just give a
+NULL address fro automatic selection).
 
 Tested using:
  - MinGW, 32-bit
@@ -154,7 +158,8 @@ int memory_alias_map(size_t size, size_t naddr, void **addrs)
     size_t i;
     for (i = 0; i < naddr; i++) {
         addrs[i] = mmap(addrs[i], size,
-                        PROT_READ | PROT_WRITE, MAP_SHARED,
+                        PROT_READ | PROT_WRITE, 
+                        ((addrs[i])?MAP_FIXED:0) | MAP_SHARED,
                         fd, 0);
         if (addrs[i] == MAP_FAILED) {
             memory_alias_unmap(size, i, addrs);
