@@ -12,6 +12,7 @@ NULL address fro automatic selection).
 Tested using:
  - MinGW, 32-bit
  - cygwin, 64-bit
+ - Linux, 64-bit
 
 By the way, I'm often critcal of the OS API on Windows, but this is one 
 case where it's actually slightly better than the Linux API. Credit where
